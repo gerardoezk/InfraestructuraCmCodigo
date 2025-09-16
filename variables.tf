@@ -8,5 +8,4 @@ variable "nginx_container_count" {
 # También se asigna en terraform.tfvars.
 variable "nginx_base_port" {
   type = number   # El valor debe ser un número (ej: 8080)
-
 }
