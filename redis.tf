@@ -25,6 +25,4 @@ networks_advanced {
 
 # Asegura que el contenedor se reinicie automáticamente en caso de error o reinicio del sistema  
 restart = "always"
-  
-
 }
