@@ -3,7 +3,7 @@ resource "docker_image" "nginx" {      # se define un recurso de tipo "docker_im
   keep_locally = false                 # la imagen no se mantendrá en local cuando se destruya el recurso
 }
 
-resource "docker_container" "nginx" {   
+resource "docker_container" "nginx" {    # se define un recurso de tipo "docker_container" llamado "nginx"
   count = var.nginx_container_count    # se crean multiples contenedores segun el valor de la variable "nginx_container_count"
   
   name  = "app-${terraform.workspace}-${count.index + 1}"  
@@ -23,3 +23,4 @@ resource "docker_container" "nginx" {
   }
 
 }
+
