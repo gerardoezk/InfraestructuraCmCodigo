@@ -1,6 +1,6 @@
-# Infraestructura con Terraform + Docker (InfraestructuraCmCodigo)
+# Infraestructura como Código con Terraform + Docker
 
-##  Grupo e Integrantes
+## Grupo e Integrantes
 
 **Grupo:** 8
 
@@ -11,43 +11,45 @@
 - LEYVA SANDOVAL, PIERO ALEJANDRO
 - RODRIGUEZ MALCA, RODRIGO ABEL
 
-##  Descripción del Proyecto
+## Descripción del Proyecto
 
-Este repositorio define y despliega una infraestructura local mediante **Terraform** utilizando el proveedor **Docker**. El objetivo es automatizar el despliegue de un entorno compuesto por servicios esenciales como Nginx, PostgreSQL, Redis y Grafana, organizados en contenedores y conectados a través de redes dedicadas para aislar cada capa de la arquitectura.
+Este repositorio contiene la configuración de Terraform necesaria para desplegar una infraestructura local completa utilizando el proveedor de **Docker**. El objetivo es automatizar el aprovisionamiento de un entorno de microservicios, demostrando principios de Infraestructura como Código (IaC).
 
-##  Imágenes Docker Utilizadas
+La arquitectura está compuesta por contenedores para las aplicaciones (Nginx), persistencia (PostgreSQL, Redis) y monitoreo (Grafana), organizados y aislados a través de redes dedicadas.
 
-| Servicio     | Imagen                                 | Justificación                                                                 |
-|--------------|----------------------------------------|-------------------------------------------------------------------------------|
-| **Nginx**    | `nginx:stable-alpine-perl`             | Versión estable y ligera de Nginx, ideal como balanceador de carga o proxy inverso. La etiqueta `perl` se incluye para extender sus funcionalidades si es necesario. |
-| **PostgreSQL**| `postgres:15-alpine`                  | Una versión reciente y LTS (Long-Term Support) de PostgreSQL sobre Alpine Linux, lo que garantiza un menor tamaño y consumo de recursos. |
-| **Redis**    | `redis:7-alpine`                       | Versión estable y optimizada de Redis, perfecta para un caché en memoria de alto rendimiento con una imagen base mínima. |
-| **Grafana**  | `grafana/grafana-enterprise:latest`    | Imagen oficial de Grafana Enterprise que permite acceder a funcionalidades avanzadas de monitoreo y visualización. Se usa `latest` para simplificar el despliegue en un entorno de desarrollo. |
+## Imágenes Docker Utilizadas
+
+| Servicio       | Imagen                      | Justificación                                                                                         |
+|----------------|----------------------------|------------------------------------------------------------------------------------------------------|
+| **Aplicaciones** | `nginx:1.25-alpine`          | Versión estable y ligera de Nginx, ideal como servidor web o proxy inverso. La base Alpine reduce el tamaño de la imagen. |
+| **PostgreSQL**   | `postgres:16-alpine`         | Versión reciente de PostgreSQL sobre Alpine Linux, que garantiza menor consumo de recursos y una superficie de ataque reducida. |
+| **Redis**        | `redis:7-alpine`             | Versión estable y optimizada de Redis, perfecta para un caché en memoria de alto rendimiento con una imagen base mínima. |
+| **Grafana**      | `grafana/grafana-oss:10.1.5` | Imagen oficial de Grafana Open Source. Se fija una versión específica en lugar de `latest` para garantizar la reproducibilidad del entorno. |
 
 ## Instrucciones de Uso
 
 ### 1. Requisitos Previos
-- Docker instalado y en ejecución.
-- Terraform instalado.
+- **Docker** instalado y en ejecución.
+- **Terraform** (versión 1.0 o superior) instalado.
 
 ### 2. Clonar e Inicializar
 ```bash
-# Clona el repositorio
+# 1. Clona el repositorio
 git clone https://github.com/gerardoezk/InfraestructuraCmCodigo.git
 
-# Ingresa al directorio del proyecto
+# 2. Ingresa al directorio del proyecto
 cd InfraestructuraCmCodigo
 
-# Inicializa Terraform para descargar los proveedores necesarios
+# 3. Inicializa Terraform para descargar los proveedores
 terraform init
 ```
 
 ### 3. Gestionar Entornos con Workspaces
 
-Se recomienda utilizar workspaces para mantener entornos separados (ej. dev, prod).
+Se recomienda utilizar workspaces para mantener entornos aislados (ej. dev, qa, prod).
 
 ```bash
-# (Opcional) Crea un nuevo workspace llamado "dev"
+# (Opcional) Crea un nuevo workspace si no existe
 terraform workspace new dev
 
 # Asegúrate de estar en el workspace correcto
@@ -57,65 +59,69 @@ terraform workspace select dev
 ### 4. Desplegar la Infraestructura
 
 ```bash
-# (Opcional) Visualiza los cambios que Terraform planea realizar
+# (Recomendado) Visualiza los cambios que Terraform planea realizar
 terraform plan
 
-# Aplica los cambios y crea los contenedores y redes
+# Aplica los cambios para crear los contenedores y redes
 terraform apply
 
-# Confirma la operación escribiendo "yes" cuando se te solicite
+# Confirma la operación escribiendo "yes" cuando se te solicite.
 
-# Verifica los contenedores en ejecución
-docker ps -a
+# Verifica que los contenedores estén en ejecución
+docker ps
 
-# Para eliminar toda la infraestructura gestionada
+# Para eliminar toda la infraestructura gestionada por Terraform
 terraform destroy
 ```
 
 ## Justificación de Puertos y Redes
 
 ### Estructura de Redes (`networks.tf`)
-- **app_net**: Red para servicios de aplicación (Nginx). Permite aislar la capa de presentación.
-- **persistence_net**: Red dedicada para servicios de persistencia de datos (PostgreSQL, Redis).
-- **monitor_net**: Red aislada para las herramientas de monitoreo (Grafana).
 
-### Puertos Expuestos (configuración real del repositorio)
+- **app_net:** Red para los servicios de aplicación (contenedores Nginx). Aísla la capa de presentación del resto de la infraestructura.
+- **persistence_net:** Red dedicada para los servicios de persistencia de datos (PostgreSQL, Redis), protegiendo el acceso a las bases de datos.
+- **monitor_net:** Red aislada para las herramientas de monitoreo (Grafana), permitiendo el acceso controlado a los servicios que necesita supervisar.
 
-| Servicio     | Puerto Host      | Puerto Container | Justificación                                                    |
-|--------------|------------------|------------------|------------------------------------------------------------------|
-| Nginx        | 8080, 8081, ...  | 80               | El contenedor Nginx escucha por defecto en el puerto 80, pero se expone en el host en 8080, 8081, etc., para evitar conflictos y simular balanceo. |
-| PostgreSQL   | 5432             | 5432             | Puerto estándar tanto en el host como en el contenedor para PostgreSQL. |
-| Redis        | 6379             | 6379             | Redis utiliza 6379 por defecto en el host y el contenedor.       |
-| Grafana      | 3000             | 3000             | Grafana escucha en el puerto 3000 por defecto y se expone igual en el host. |
+### Puertos Expuestos
 
-Los valores son confirmados en los archivos Terraform del repositorio:
+| Servicio      | Puerto Host   | Puerto Contenedor | Justificación                                                                                  |
+|---------------|--------------|-------------------|-----------------------------------------------------------------------------------------------|
+| Aplicaciones  | 8081, 8082, 8083 | 80             | El contenedor Nginx escucha en el puerto 80, pero se expone en puertos altos en el host para evitar conflictos y simular un entorno de microservicios. |
+| PostgreSQL    | 5432         | 5432              | Puerto estándar para conexiones a PostgreSQL. Se mantiene consistente entre el host y el contenedor para facilitar el acceso con herramientas de BBDD. |
+| Redis         | 6379         | 6379              | Puerto por defecto para Redis. Se expone para permitir la conexión directa durante el desarrollo si fuera necesario. |
+| Grafana       | 3000         | 3000              | Puerto estándar para acceder a la interfaz web de Grafana.                                     |
 
-- [nginx.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/nginx.tf)
-- [postgre.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/postgre.tf)
-- [redis.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/redis.tf)
-- [grafana.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/grafana.tf)
+## Consideraciones de Storage (Persistencia de Datos)
 
-## Consideraciones de Storage
-
-- **PostgreSQL con Volumen**: La base de datos PostgreSQL está configurada para usar un volumen Docker. Esto garantiza que los datos sean persistentes y no se pierdan si el contenedor se reinicia o se vuelve a crear.
-- **Redis sin Volumen**: El servicio de Redis no utiliza volúmenes de persistencia, ya que su rol en esta arquitectura es de caché en memoria. La pérdida de datos tras un reinicio no es crítica y se alinea con su propósito de almacenamiento temporal.
+- **PostgreSQL con Volumen:** Se configura un volumen de Docker para PostgreSQL. Esto garantiza que los datos sean persistentes y no se pierdan si el contenedor se reinicia o se elimina, desacoplando el ciclo de vida de los datos del contenedor.
+- **Redis sin Volumen:** El servicio de Redis no utiliza un volumen de persistencia, ya que su rol en esta arquitectura es de caché en memoria. La pérdida de datos tras un reinicio es un comportamiento esperado y aceptable para este caso de uso.
 
 ## Estructura de Archivos del Proyecto
 
-- `main.tf`: Archivo principal que configura el proveedor Docker de Terraform.
-- `variables.tf`: Define las variables utilizadas en el proyecto (ej. nginx_count, base_port).
-- `terraform.tfvars`: Asigna valores a las variables definidas (¡este archivo no debería subirse a un repositorio público si contiene secretos!).
-- `networks.tf`: Declara las tres redes Docker (app_net, persistence_net, monitor_net).
-- `nginx.tf`: Define el despliegue de los contenedores Nginx.
-- `postgre.tf`: Configuración del contenedor de PostgreSQL.
-- `redis.tf`: Configuración del contenedor de Redis.
-- `grafana.tf`: Configuración del contenedor de Grafana.
+- `main.tf`: Archivo principal que configura el proveedor de Docker.
+- `variables.tf`: Define todas las variables de entrada del proyecto (ej. puertos, credenciales, etc.).
+- `terraform.tfvars`: Asigna valores a las variables definidas. **Importante:** Este archivo no debe ser versionado en un repositorio público si contiene secretos. Añádelo a tu `.gitignore`.
+- `networks.tf`: Declara las tres redes Docker (`app_net`, `persistence_net`, `monitor_net`).
+- `apps.tf`: Define el despliegue de los contenedores de aplicación (Nginx).
+- `persistence.tf`: Configuración de los contenedores de persistencia (PostgreSQL y Redis).
+- `monitoring.tf`: Configuración del contenedor de monitoreo (Grafana).
 
 ## Acceso a los Servicios
 
-Una vez desplegada la infraestructura, puedes acceder a los servicios en las siguientes direcciones:
-- **Nginx:** http://localhost:8080, http://localhost:8081, etc.
-- **Grafana:** http://localhost:3000
-- **PostgreSQL:** localhost:5432
-- **Redis:** localhost:6379
+Una vez desplegada la infraestructura, puedes acceder a cada servicio en las siguientes URLs:
 
+- **Aplicaciones Nginx:**  
+  - http://localhost:8081  
+  - http://localhost:8082  
+  - http://localhost:8083
+
+- **Grafana:**  
+  - http://localhost:3000
+
+- **PostgreSQL (conexión):**  
+  - localhost:5432
+
+- **Redis (conexión):**  
+  - localhost:6379
+
+---
