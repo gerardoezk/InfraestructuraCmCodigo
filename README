@@ -1,1 +1,121 @@
+# Infraestructura con Terraform + Docker (InfraestructuraCmCodigo)
+
+##  Grupo e Integrantes
+
+**Grupo:** 8
+
+**Integrantes:**
+- VERA ROMERO, VANESA MARILI
+- CAIPO TRUJILLO, SONIA FERNANDA
+- ASUNCIÓN CHIRA, LUIS GERARDO
+- LEYVA SANDOVAL, PIERO ALEJANDRO
+- RODRIGUEZ MALCA, RODRIGO ABEL
+
+##  Descripción del Proyecto
+
+Este repositorio define y despliega una infraestructura local mediante **Terraform** utilizando el proveedor **Docker**. El objetivo es automatizar el despliegue de un entorno compuesto por servicios esenciales como Nginx, PostgreSQL, Redis y Grafana, organizados en contenedores y conectados a través de redes dedicadas para aislar cada capa de la arquitectura.
+
+##  Imágenes Docker Utilizadas
+
+| Servicio     | Imagen                                 | Justificación                                                                 |
+|--------------|----------------------------------------|-------------------------------------------------------------------------------|
+| **Nginx**    | `nginx:stable-alpine-perl`             | Versión estable y ligera de Nginx, ideal como balanceador de carga o proxy inverso. La etiqueta `perl` se incluye para extender sus funcionalidades si es necesario. |
+| **PostgreSQL**| `postgres:15-alpine`                  | Una versión reciente y LTS (Long-Term Support) de PostgreSQL sobre Alpine Linux, lo que garantiza un menor tamaño y consumo de recursos. |
+| **Redis**    | `redis:7-alpine`                       | Versión estable y optimizada de Redis, perfecta para un caché en memoria de alto rendimiento con una imagen base mínima. |
+| **Grafana**  | `grafana/grafana-enterprise:latest`    | Imagen oficial de Grafana Enterprise que permite acceder a funcionalidades avanzadas de monitoreo y visualización. Se usa `latest` para simplificar el despliegue en un entorno de desarrollo. |
+
+## Instrucciones de Uso
+
+### 1. Requisitos Previos
+- Docker instalado y en ejecución.
+- Terraform instalado.
+
+### 2. Clonar e Inicializar
+```bash
+# Clona el repositorio
+git clone https://github.com/gerardoezk/InfraestructuraCmCodigo.git
+
+# Ingresa al directorio del proyecto
+cd InfraestructuraCmCodigo
+
+# Inicializa Terraform para descargar los proveedores necesarios
+terraform init
+```
+
+### 3. Gestionar Entornos con Workspaces
+
+Se recomienda utilizar workspaces para mantener entornos separados (ej. dev, prod).
+
+```bash
+# (Opcional) Crea un nuevo workspace llamado "dev"
+terraform workspace new dev
+
+# Asegúrate de estar en el workspace correcto
+terraform workspace select dev
+```
+
+### 4. Desplegar la Infraestructura
+
+```bash
+# (Opcional) Visualiza los cambios que Terraform planea realizar
+terraform plan
+
+# Aplica los cambios y crea los contenedores y redes
+terraform apply
+
+# Confirma la operación escribiendo "yes" cuando se te solicite
+
+# Verifica los contenedores en ejecución
+docker ps -a
+
+# Para eliminar toda la infraestructura gestionada
+terraform destroy
+```
+
+## Justificación de Puertos y Redes
+
+### Estructura de Redes (`networks.tf`)
+- **app_net**: Red para servicios de aplicación (Nginx). Permite aislar la capa de presentación.
+- **persistence_net**: Red dedicada para servicios de persistencia de datos (PostgreSQL, Redis).
+- **monitor_net**: Red aislada para las herramientas de monitoreo (Grafana).
+
+### Puertos Expuestos (configuración real del repositorio)
+
+| Servicio     | Puerto Host      | Puerto Container | Justificación                                                    |
+|--------------|------------------|------------------|------------------------------------------------------------------|
+| Nginx        | 8080, 8081, ...  | 80               | El contenedor Nginx escucha por defecto en el puerto 80, pero se expone en el host en 8080, 8081, etc., para evitar conflictos y simular balanceo. |
+| PostgreSQL   | 5432             | 5432             | Puerto estándar tanto en el host como en el contenedor para PostgreSQL. |
+| Redis        | 6379             | 6379             | Redis utiliza 6379 por defecto en el host y el contenedor.       |
+| Grafana      | 3000             | 3000             | Grafana escucha en el puerto 3000 por defecto y se expone igual en el host. |
+
+Los valores son confirmados en los archivos Terraform del repositorio:
+
+- [nginx.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/nginx.tf)
+- [postgre.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/postgre.tf)
+- [redis.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/redis.tf)
+- [grafana.tf](https://github.com/gerardoezk/InfraestructuraCmCodigo/blob/main/grafana.tf)
+
+## Consideraciones de Storage
+
+- **PostgreSQL con Volumen**: La base de datos PostgreSQL está configurada para usar un volumen Docker. Esto garantiza que los datos sean persistentes y no se pierdan si el contenedor se reinicia o se vuelve a crear.
+- **Redis sin Volumen**: El servicio de Redis no utiliza volúmenes de persistencia, ya que su rol en esta arquitectura es de caché en memoria. La pérdida de datos tras un reinicio no es crítica y se alinea con su propósito de almacenamiento temporal.
+
+## Estructura de Archivos del Proyecto
+
+- `main.tf`: Archivo principal que configura el proveedor Docker de Terraform.
+- `variables.tf`: Define las variables utilizadas en el proyecto (ej. nginx_count, base_port).
+- `terraform.tfvars`: Asigna valores a las variables definidas (¡este archivo no debería subirse a un repositorio público si contiene secretos!).
+- `networks.tf`: Declara las tres redes Docker (app_net, persistence_net, monitor_net).
+- `nginx.tf`: Define el despliegue de los contenedores Nginx.
+- `postgre.tf`: Configuración del contenedor de PostgreSQL.
+- `redis.tf`: Configuración del contenedor de Redis.
+- `grafana.tf`: Configuración del contenedor de Grafana.
+
+## Acceso a los Servicios
+
+Una vez desplegada la infraestructura, puedes acceder a los servicios en las siguientes direcciones:
+- **Nginx:** http://localhost:8080, http://localhost:8081, etc.
+- **Grafana:** http://localhost:3000
+- **PostgreSQL:** localhost:5432
+- **Redis:** localhost:6379
 
