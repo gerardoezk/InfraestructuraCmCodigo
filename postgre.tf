@@ -29,5 +29,4 @@ resource "docker_container" "postgres" {
     "POSTGRES_USER=postgres",        # Usuario administrador
     "POSTGRES_PASSWORD=password"     # Contraseña del usuario
   ]
-
 }
